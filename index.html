@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#100b25">
+<title>Shadow Monsters Survival</title>
+<style>
+:root{--bg:#100b25;--panel:#21173d;--purple:#a855f7;--cyan:#65e7ff;--gold:#ffd166;--text:#f8f4ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:radial-gradient(ellipse at top,#302052 0,#100b25 55%,#070611 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;touch-action:none}
+#wrap{height:100dvh;display:flex;flex-direction:column;max-width:900px;margin:auto;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom)}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 2px}
+.brand{font-weight:900;letter-spacing:.5px;font-size:clamp(16px,4vw,22px)}.brand span{color:#c084fc}
+.stats{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.pill{background:#ffffff12;border:1px solid #ffffff20;border-radius:12px;padding:5px 8px;font-size:12px;font-weight:800}
+#arena{position:relative;flex:1;min-height:0;border:1px solid #9b5de555;border-radius:18px;overflow:hidden;background:#100e22;box-shadow:0 0 35px #7c3aed20}
+canvas{width:100%;height:100%;display:block}
+#hud{position:absolute;top:10px;left:10px;right:10px;pointer-events:none;display:flex;flex-direction:column;gap:6px}
+.bars{display:flex;gap:8px;align-items:center}.bar{height:10px;background:#ffffff20;border-radius:99px;overflow:hidden;flex:1;border:1px solid #ffffff18}.bar>i{display:block;height:100%;width:100%;border-radius:99px;transition:width .15s}.hp i{background:linear-gradient(90deg,#fb466a,#ff9f9f)}.xp i{background:linear-gradient(90deg,#8b5cf6,#67e8f9)}
+.bossbar{display:none;align-items:center;gap:8px;font-size:11px;font-weight:900;color:#ffb4d0}.bossbar .bar i{background:#fb3478}
+#bottom{padding:8px 2px 4px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.help{font-size:11px;opacity:.78;line-height:1.3;max-width:56%}
+.btn{border:1px solid #ffffff2c;background:linear-gradient(135deg,#7837c8,#4c1d95);color:white;border-radius:13px;padding:11px 13px;font-weight:900;font-size:13px;box-shadow:0 4px 0 #2d1455;cursor:pointer}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #2d1455}.btn.secondary{background:#ffffff12;box-shadow:none}
+#joystick{position:absolute;bottom:20px;left:20px;width:96px;height:96px;border-radius:50%;background:#ffffff12;border:2px solid #ffffff30;display:none;touch-action:none}
+#knob{position:absolute;left:27px;top:27px;width:38px;height:38px;border-radius:50%;background:#c084fcaa;border:2px solid #e9d5ff}
+#ability{position:absolute;bottom:24px;right:20px;width:76px;height:76px;border-radius:50%;display:none;background:radial-gradient(circle,#c084fc,#6d28d9);border:2px solid #e9d5ff;font-size:11px;font-weight:900;color:white;box-shadow:0 0 20px #a855f777;touch-action:manipulation}
+#overlay{position:absolute;inset:0;background:#090616d9;display:flex;align-items:center;justify-content:center;padding:18px;z-index:5}
+.card{width:min(100%,420px);background:linear-gradient(160deg,#2b1b4c,#151026);border:1px solid #c084fc66;border-radius:22px;padding:22px;text-align:center;box-shadow:0 20px 60px #0008}
+h1{font-size:clamp(25px,7vw,36px);margin:0 0 8px;line-height:1.05}h1 em{color:#c084fc;font-style:normal}.sub{opacity:.8;font-size:13px;line-height:1.5;margin:0 0 16px}
+.big{font-size:56px;margin:4px}.full{width:100%;margin-top:8px}
+#choices{display:grid;gap:9px;margin-top:14px}.choice{display:flex;align-items:center;text-align:left;gap:10px;background:#ffffff0d;border:1px solid #ffffff25;border-radius:14px;padding:12px;color:white;cursor:pointer}.choice b{display:block;font-size:13px}.choice small{opacity:.72;font-size:11px}.choice .ico{font-size:25px}
+.hidden{display:none!important}
+@media(min-width:650px){#joystick,#ability{display:none!important}.help{font-size:12px}}
+</style>
+</head>
+<body>
+<div id="wrap">
+<header><div class="brand">SHADOW <span>MONSTERS</span></div><div class="stats"><div class="pill">⌛ <span id="time">00:00</span></div><div class="pill">☠️ <span id="kills">0</span></div><div class="pill">⭐ Nv. <span id="level">1</span></div><div class="pill">🪙 <span id="gold">0</span></div></div></header>
+<div id="arena"><canvas id="game"></canvas>
+<div id="hud"><div class="bars"><span style="font-size:11px;font-weight:900">HP</span><div class="bar hp"><i id="hpbar"></i></div></div><div class="bars"><span style="font-size:11px;font-weight:900">EXP</span><div class="bar xp"><i id="xpbar" style="width:0%"></i></div></div><div class="bossbar" id="bossbar">👑 JEFE <div class="bar"><i id="bossfill"></i></div></div></div>
+<div id="joystick"><div id="knob"></div></div><button id="ability">✨<br>ESTALLIDO</button><button id="megaBtn" style="position:absolute;right:22px;bottom:112px;border:2px solid #67e8f9;border-radius:14px;padding:9px 12px;background:linear-gradient(135deg,#7e22ce,#0e7490);color:white;font-weight:900;font-size:11px;box-shadow:0 0 18px #a855f777;touch-action:manipulation">🧬 MEGA<br>10 BAJAS</button>
+<div id="overlay"><div class="card" id="menu"><div class="big">🌑</div><h1>SHADOW <em>MONSTERS</em></h1><p class="sub">Sobrevive a las oleadas, reúne experiencia y evoluciona tus poderes. Una aventura original inspirada en los juegos de supervivencia.</p><p class="sub">🕹️ PC: WASD o flechas · 📱 iPhone: joystick táctil<br>Tu ataque se activa automáticamente.</p><button class="btn full" id="start">⚔️ COMENZAR PARTIDA</button><button class="btn secondary full" id="how">¿CÓMO JUGAR?</button></div>
+<div class="card hidden" id="upgrade"><div class="big">⬆️</div><h1>¡SUBISTE DE <em>NIVEL!</em></h1><p class="sub">Elige una mejora para continuar.</p><div id="choices"></div></div>
+<div class="card hidden" id="end"><div class="big" id="endicon">🏆</div><h1 id="endtitle">FIN DE PARTIDA</h1><p class="sub" id="endtext"></p><button class="btn full" id="again">VOLVER A JUGAR</button></div>
+<div class="card hidden" id="instructions"><div class="big">🎮</div><h1>¿CÓMO <em>JUGAR?</em></h1><p class="sub">Muévete para esquivar enemigos. Tu personaje dispara automáticamente al rival más cercano. Recoge orbes de experiencia para subir de nivel. Cada 3 minutos aparece un jefe. Pulsa ESTALLIDO para liberar una onda mágica cuando esté lista.</p><button class="btn full" id="back">ENTENDIDO</button></div></div>
+</div>
+<div id="bottom"><div class="help">Muévete, esquiva y recoge orbes.<br>Ataca automáticamente al enemigo más cercano.</div><button class="btn" id="burst">✨ ESTALLIDO</button><button class="btn secondary" id="pause">Ⅱ PAUSA</button></div>
+</div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=800,H=600, dpr=1, running=false, paused=false, last=0, elapsed=0, spawn=0, shot=0, burstCooldown=0, megaTime=0, megaUsed=false, kills=0, gold=0, level=1, xp=0, xpNeed=8, upgrades={damage:1,rate:1,speed:1,maxhp:100,magnet:85}, enemies=[],orbs=[],shots=[],particles=[], boss=null, keys={}, joy={x:0,y:0}, pointer=null;
+const player={x:0,y:0,r:13,hp:100,maxhp:100,inv:0};
+function resize(){const r=canvas.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=Math.max(300,r.width);H=Math.max(300,r.height);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);if(!running){player.x=W/2;player.y=H/2}}
+window.addEventListener('resize',resize);resize();
+function reset(){elapsed=0;spawn=0;shot=0;burstCooldown=0;megaTime=0;megaUsed=false;kills=0;gold=0;level=1;xp=0;xpNeed=8;enemies=[];orbs=[];shots=[];particles=[];boss=null;Object.assign(upgrades,{damage:1,rate:1,speed:1,maxhp:100,magnet:85});Object.assign(player,{x:W/2,y:H/2,hp:100,maxhp:100,inv:0});updateHUD()}
+function rand(a,b){return a+Math.random()*(b-a)}function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function spawnEnemy(isBoss=false){let a=rand(0,Math.PI*2),edge=Math.max(W,H)*.58;let e={x:player.x+Math.cos(a)*edge,y:player.y+Math.sin(a)*edge,r:isBoss?31:rand(9,15),hp:isBoss?100+elapsed*1.5:2+Math.floor(elapsed/35),maxhp:0,speed:isBoss?27:rand(28,48)+Math.min(25,elapsed*.2),boss:isBoss,hit:0};e.maxhp=e.hp;enemies.push(e);if(isBoss){boss=e;$('bossbar').style.display='flex'}}
+function addOrb(x,y,amount=1){orbs.push({x,y,r:5,amount})}
+function megaEvolve(){if(!running||paused||megaUsed||kills<10)return;megaTime=15;megaUsed=true;upgrades.damage*=2.5;upgrades.speed*=1.25;player.hp=Math.min(player.maxhp,player.hp+30);for(let i=0;i<70;i++){let a=rand(0,Math.PI*2),s=rand(40,220);particles.push({x:player.x,y:player.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.9,c:i%2?"#67e8f9":"#e879f9"})}updateHUD()}\nfunction burst(){if(!running||paused||burstCooldown>0)return;burstCooldown=8;for(const e of enemies){if(dist(e,player)<145){e.hp-=14*upgrades.damage;if(e.hp<=0)killEnemy(e)}}for(let i=0;i<36;i++){let a=rand(0,Math.PI*2),s=rand(30,180);particles.push({x:player.x,y:player.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.5,c:'#c084fc'})}}
+function killEnemy(e){if(e.dead)return;e.dead=true;kills++;gold+=e.boss?30:1;addOrb(e.x,e.y,e.boss?12:1);for(let i=0;i<5;i++)particles.push({x:e.x,y:e.y,vx:rand(-60,60),vy:rand(-60,60),t:.35,c:e.boss?'#fb7185':'#a78bfa'});if(e.boss){boss=null;$('bossbar').style.display='none';player.hp=Math.min(player.maxhp,player.hp+20)}}
+function showUpgrade(){paused=true;$('overlay').style.display='flex';$('menu').classList.add('hidden');$('end').classList.add('hidden');$('instructions').classList.add('hidden');$('upgrade').classList.remove('hidden');const opts=[['⚔️','Golpe sombrío','Daño +35%',()=>upgrades.damage*=1.35],['💨','Paso espectral','Velocidad +15%',()=>upgrades.speed*=1.15],['💜','Corazón arcano','Vida máxima +25 y cura 25',()=>{player.maxhp+=25;player.hp=Math.min(player.maxhp,player.hp+25)}],['🧲','Imán de almas','Atracción de orbes +45%',()=>upgrades.magnet*=1.45],['⚡','Ritmo veloz','Ataque más rápido',()=>upgrades.rate*=1.25]];
+$('choices').innerHTML='';opts.sort(()=>Math.random()-.5).slice(0,3).forEach(o=>{let b=document.createElement('button');b.className='choice';b.innerHTML=`<span class="ico">${o[0]}</span><span><b>${o[1]}</b><small>${o[2]}</small></span>`;b.onclick=()=>{o[3]();$('overlay').style.display='none';paused=false;last=performance.now();};$('choices').appendChild(b)})}
+function updateHUD(){$('megaBtn').textContent=megaTime>0?`🧬 MEGA ${megaTime.toFixed(1)}s`:megaUsed?"🧬 MEGA USADA":`🧬 MEGA ${Math.max(0,10-kills)} BAJAS`;$('megaBtn').style.opacity=(!megaUsed&&kills>=10)?"1":".55";$('time').textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(Math.floor(elapsed%60)).padStart(2,'0');$('kills').textContent=kills;$('level').textContent=level;$('gold').textContent=gold;$('hpbar').style.width=Math.max(0,player.hp/player.maxhp*100)+'%';$('xpbar').style.width=(xp/xpNeed*100)+'%';if(boss)$('bossfill').style.width=Math.max(0,boss.hp/boss.maxhp*100)+'%';$('burst').textContent=burstCooldown>0?`✨ ${burstCooldown.toFixed(1)}s`:'✨ ESTALLIDO';$('ability').innerHTML=burstCooldown>0?`✨<br>${burstCooldown.toFixed(1)}s`:'✨<br>ESTALLIDO'}
+function endGame(){running=false;$('overlay').style.display='flex';$('menu').classList.add('hidden');$('upgrade').classList.add('hidden');$('instructions').classList.add('hidden');$('end').classList.remove('hidden');$('endtitle').textContent='¡FIN DE PARTIDA!';$('endtext').textContent=`Sobreviviste ${Math.floor(elapsed/60)} min ${Math.floor(elapsed%60)} s, derrotaste ${kills} enemigos y reuniste ${gold} monedas.`}
+function update(dt){elapsed+=dt;spawn+=dt;shot+=dt;burstCooldown=Math.max(0,burstCooldown-dt);if(megaTime>0){megaTime=Math.max(0,megaTime-dt);if(megaTime===0){upgrades.damage/=2.5;upgrades.speed/=1.25}}player.inv=Math.max(0,player.inv-dt);
+let mx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0)+joy.x,my=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0)+joy.y;let l=Math.hypot(mx,my)||1;player.x=Math.max(14,Math.min(W-14,player.x+mx/l*180*upgrades.speed*dt));player.y=Math.max(14,Math.min(H-14,player.y+my/l*180*upgrades.speed*dt));
+if(spawn>Math.max(.3,1.1-elapsed*.006)){spawn=0;spawnEnemy(false);if(Math.random()<Math.min(.35,elapsed*.002))spawnEnemy(false)}
+if(elapsed>180&&Math.floor((elapsed-dt)/180)<Math.floor(elapsed/180)&&!boss)spawnEnemy(true);
+if(shot>Math.max(.22,.62/upgrades.rate)){shot=0;let target=null,md=Infinity;for(const e of enemies){let d=dist(e,player);if(d<md){md=d;target=e}}if(target&&md<330){let l=Math.hypot(target.x-player.x,target.y-player.y)||1;shots.push({x:player.x,y:player.y,vx:(target.x-player.x)/l*360,vy:(target.y-player.y)/l*360,t:.8,damage:upgrades.damage*2})}}
+for(const e of enemies){let l=Math.hypot(player.x-e.x,player.y-e.y)||1;e.x+=((player.x-e.x)/l)*e.speed*dt;e.y+=((player.y-e.y)/l)*e.speed*dt;if(l<e.r+player.r&&player.inv<=0){player.hp-=e.boss?18:9;player.inv=.7;if(player.hp<=0){player.hp=0;updateHUD();endGame();return}}}
+for(const s of shots){s.x+=s.vx*dt;s.y+=s.vy*dt;s.t-=dt;for(const e of enemies){if(!e.dead&&Math.hypot(s.x-e.x,s.y-e.y)<e.r+4){e.hp-=s.damage;s.t=0;if(e.hp<=0)killEnemy(e);break}}}shots=shots.filter(s=>s.t>0);
+for(const o of orbs){let dx=player.x-o.x,dy=player.y-o.y,d=Math.hypot(dx,dy)||1;if(d<upgrades.magnet){o.x+=dx/d*240*dt;o.y+=dy/d*240*dt}if(d<player.r+o.r+5){xp+=o.amount;if(xp>=xpNeed){xp-=xpNeed;level++;xpNeed=Math.ceil(xpNeed*1.35);updateHUD();showUpgrade();break}}}
+orbs=orbs.filter(o=>Math.hypot(player.x-o.x,player.y-o.y)>player.r+o.r+5);
+for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.t-=dt}particles=particles.filter(p=>p.t>0);
+enemies=enemies.filter(e=>!e.dead&&e.hp>0);updateHUD()}
+function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#100e22';ctx.fillRect(0,0,W,H);
+const grid=34,ox=(-player.x%grid),oy=(-player.y%grid);ctx.strokeStyle='#ffffff0b';ctx.lineWidth=1;for(let x=ox;x<W;x+=grid){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=oy;y<H;y+=grid){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+for(const o of orbs){ctx.fillStyle='#67e8f9';ctx.shadowColor='#67e8f9';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0}
+for(const s of shots){ctx.fillStyle='#e9d5ff';ctx.shadowColor='#a855f7';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(s.x,s.y,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0}
+for(const e of enemies){ctx.fillStyle=e.boss?'#fb3478':'#7c3aed';ctx.shadowColor=e.boss?'#fb3478':'#a855f7';ctx.shadowBlur=e.boss?18:8;ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#f5d0fe';ctx.beginPath();ctx.arc(e.x-e.r*.25,e.y-2,2.5,0,Math.PI*2);ctx.arc(e.x+e.r*.25,e.y-2,2.5,0,Math.PI*2);ctx.fill();if(e.boss){ctx.fillStyle='#ffffff30';ctx.fillRect(e.x-26,e.y-e.r-12,52,4);ctx.fillStyle='#fb7185';ctx.fillRect(e.x-26,e.y-e.r-12,52*Math.max(0,e.hp/e.maxhp),4)}}
+for(const p of particles){ctx.globalAlpha=Math.max(0,p.t*2);ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+ctx.globalAlpha=player.inv>0&&Math.floor(player.inv*15)%2===0?.35:1;ctx.fillStyle=megaTime>0?'#67e8f9':'#c084fc';ctx.shadowColor=megaTime>0?'#67e8f9':'#a855f7';ctx.shadowBlur=megaTime>0?32:22;ctx.beginPath();ctx.arc(player.x,player.y,player.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(player.x-4,player.y-3,2.2,0,Math.PI*2);ctx.arc(player.x+4,player.y-3,2.2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+if(!running){ctx.fillStyle='#ffffff08';ctx.fillRect(0,0,W,H)}}
+function loop(t){if(!running)return;let dt=Math.min(.04,(t-last)/1000||0);last=t;if(!paused)update(dt);draw();if(running)requestAnimationFrame(loop)}
+function start(){reset();running=true;paused=false;$('overlay').style.display='none';$('menu').classList.remove('hidden');$('upgrade').classList.add('hidden');$('end').classList.add('hidden');$('instructions').classList.add('hidden');last=performance.now();requestAnimationFrame(loop)}
+$('start').onclick=start;$('again').onclick=start;$('megaBtn').onclick=megaEvolve;$('burst').onclick=burst;$('ability').onclick=burst;
+$('pause').onclick=()=>{if(!running)return;paused=!paused;$('pause').textContent=paused?'▶ SEGUIR':'Ⅱ PAUSA';if(paused){$('overlay').style.display='flex';$('menu').classList.remove('hidden');$('menu').querySelector('h1').innerHTML='PAUSA';$('menu').querySelector('.sub').textContent='La partida está en pausa.';$('start').textContent='▶ CONTINUAR';$('start').onclick=()=>{$('overlay').style.display='none';paused=false;$('start').textContent='⚔️ COMENZAR PARTIDA';$('menu').querySelector('h1').innerHTML='SHADOW <em>MONSTERS</em>'; $('menu').querySelector('.sub').textContent='Sobrevive a las oleadas, reúne experiencia y evoluciona tus poderes. Una aventura original inspirada en los juegos de supervivencia.';$('start').onclick=start;last=performance.now()}}else last=performance.now()};
+$('how').onclick=()=>{$('menu').classList.add('hidden');$('instructions').classList.remove('hidden')};$('back').onclick=()=>{$('instructions').classList.add('hidden');$('menu').classList.remove('hidden')};
+window.addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(e.key===' '||e.key==='Shift')burst()});window.addEventListener('keyup',e=>keys[e.key]=false);
+const joyel=$('joystick'),knob=$('knob');function joyStart(e){pointer=e.pointerId;joyel.setPointerCapture(pointer);joyMove(e)}function joyMove(e){if(pointer!==e.pointerId)return;const r=joyel.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,l=Math.hypot(dx,dy),max=30;if(l>max){dx=dx/l*max;dy=dy/l*max}joy.x=dx/max;joy.y=dy/max;knob.style.transform=`translate(${dx}px,${dy}px)`}function joyEnd(e){if(pointer!==e.pointerId)return;pointer=null;joy.x=joy.y=0;knob.style.transform='translate(0,0)'}
+joyel.addEventListener('pointerdown',joyStart);joyel.addEventListener('pointermove',joyMove);joyel.addEventListener('pointerup',joyEnd);joyel.addEventListener('pointercancel',joyEnd);
+function mobile(){if(window.matchMedia('(pointer:coarse)').matches){joyel.style.display='block';$('ability').style.display='block';$('burst').style.display='none'}}mobile();
+draw();
+})();
+</script>
+</body>
+</html>
